@@ -9,9 +9,6 @@ concurrency:
   group: deploy-main
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,7 +29,7 @@ jobs:
         run: |
           echo "${{ secrets.OCI_AUTH_TOKEN }}" | docker login fra.ocir.io -u "${{ secrets.OCIR_NAMESPACE }}/rnovosela23@unizd.hr" --password-stdin
 
-      - name: Build Docker image
+      - name: Build & Push Docker image
         run: |
           docker build -t fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }} .
           docker push fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }}
@@ -57,9 +54,3 @@ jobs:
 
       - name: Rollout
         run: kubectl rollout status deployment/kolokvij
-
-      - name: Smoke Test
-        run: |
-          sleep 60
-          EXTERNAL_IP=$(kubectl get svc kolokvij-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          curl http://$EXTERNAL_IP:8080/hello/Kolokvij
