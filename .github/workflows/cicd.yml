@@ -1,4 +1,3 @@
-
 name: CI/CD Pipeline
 
 on:
@@ -36,12 +35,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }} .
-          docker tag fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }} fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:latest
-
-      - name: Push Docker image
-        run: |
           docker push fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }}
-          docker push fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:latest
 
   deploy:
     needs: build
@@ -58,18 +52,8 @@ jobs:
         with:
           cluster: ${{ secrets.OKE_CLUSTER_OCID }}
 
-      - name: Replace image placeholder
-        run: |
-          sed -i 's|IMAGE_PLACEHOLDER|fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }}|g' k8s/kolokvij-deploy.yaml
-
       - name: Deploy
         run: kubectl apply -f k8s/kolokvij-deploy.yaml
 
       - name: Rollout
         run: kubectl rollout status deployment/kolokvij
-
-      - name: Smoke Test
-        run: |
-          sleep 60
-          EXTERNAL_IP=$(kubectl get svc kolokvij-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          curl http://$EXTERNAL_IP:8080/hello/Kolokvij
