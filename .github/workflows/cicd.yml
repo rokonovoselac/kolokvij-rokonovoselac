@@ -30,10 +30,8 @@ jobs:
         run: ./mvnw -B package -DskipTests
 
       - name: Login to OCIR
-        uses: oracle-actions/login-ocir@v1.3.0
-        with:
-          auth_token: ${{ secrets.OCI_AUTH_TOKEN }}
-          
+        run: |
+          echo "${{ secrets.OCI_AUTH_TOKEN }}" | docker login fra.ocir.io -u "${{ secrets.OCIR_NAMESPACE }}/rnovosela23@unizd.hr" --password-stdin
 
       - name: Build Docker image
         run: |
