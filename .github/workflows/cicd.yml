@@ -33,8 +33,7 @@ jobs:
         uses: oracle-actions/login-ocir@v1.3.0
         with:
           auth_token: ${{ secrets.OCI_AUTH_TOKEN }}
-          registry: fra.ocir.io
-          username: ${{ secrets.OCIR_NAMESPACE }}/rnovosela23@unizd.hr
+          
 
       - name: Build Docker image
         run: |
