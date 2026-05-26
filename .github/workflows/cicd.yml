@@ -9,9 +9,6 @@ concurrency:
   group: deploy-main
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,7 +29,7 @@ jobs:
         run: |
           echo "${{ secrets.OCI_AUTH_TOKEN }}" | docker login fra.ocir.io -u "${{ secrets.OCIR_NAMESPACE }}/rnovosela23@unizd.hr" --password-stdin
 
-      - name: Build Docker image
+      - name: Build & Push Docker image
         run: |
           docker build -t fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }} .
           docker push fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }}
@@ -40,9 +37,6 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
-    env:
-      OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
 
     steps:
       - uses: actions/checkout@v4
