@@ -47,6 +47,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
 
+    env:
+      OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+
     steps:
       - uses: actions/checkout@v4
 
