@@ -1,9 +1,14 @@
+
 name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -21,6 +26,38 @@ jobs:
       - name: Build JAR
         run: ./mvnw -B package -DskipTests
 
-      - name: Build Docker image
+      - name: Login to OCIR
         run: |
-          docker build -t kolokvij:latest .
+          echo "${{ secrets.OCI_AUTH_TOKEN }}" | docker login fra.ocir.io -u "${{ secrets.OCIR_NAMESPACE }}/rnovosela23@unizd.hr" --password-stdin
+
+      - name: Build & Push Docker image
+        run: |
+          docker build -t fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }} .
+          docker push fra.ocir.io/${{ secrets.OCIR_NAMESPACE }}/kolokvij/app:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    env:
+      OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: oracle-actions/configure-kubectl-oke@v1.5.0
+        with:
+          cluster: ${{ secrets.OKE_CLUSTER_OCID }}
+
+      - name: Deploy to OKE
+        run: kubectl apply -f k8s/kolokvij-deploy.yaml
+
+      - name: Rollout status
+        run: kubectl rollout status deployment/kolokvij
+
+      - name: Smoke Test
+        run: |
+          sleep 60
+          EXTERNAL_IP=$(kubectl get svc kolokvij-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          curl http://$EXTERNAL_IP:8080/hello/Kolokvij
